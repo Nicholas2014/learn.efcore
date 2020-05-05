@@ -22,19 +22,28 @@ namespace ContosoUniversity
         [BindProperty]
         public Student Student { get; set; }
 
-        public async Task<IActionResult> OnGetAsync(int? id)
+        public string ErrorMessage { get; set; }
+
+        public async Task<IActionResult> OnGetAsync(int? id, bool? saveChangeError = false)
         {
             if (id == null)
             {
                 return NotFound();
             }
 
-            Student = await _context.Students.FirstOrDefaultAsync(m => m.ID == id);
+            Student = await _context.Students.AsNoTracking()
+                .FirstOrDefaultAsync(m => m.ID == id);
 
             if (Student == null)
             {
                 return NotFound();
             }
+
+            if (saveChangeError.GetValueOrDefault())
+            {
+                ErrorMessage = "Delete failed, Try again.";
+            }
+
             return Page();
         }
 
@@ -45,15 +54,33 @@ namespace ContosoUniversity
                 return NotFound();
             }
 
-            Student = await _context.Students.FindAsync(id);
-
-            if (Student != null)
+            var student = await _context.Students.FindAsync(id);
+            if (student == null)
             {
-                _context.Students.Remove(Student);
-                await _context.SaveChangesAsync();
+                return NotFound();
             }
 
-            return RedirectToPage("./Index");
+            try
+            {
+                throw new DbUpdateException("人为泡一个异常试试");
+                _context.Students.Remove(student);
+                await _context.SaveChangesAsync();
+
+                return RedirectToPage("./Index");
+            }
+            catch (DbUpdateException ex)
+            {
+                // log error
+                return RedirectToPage("./Delete", new { id, saveChangeError = true });
+            }
+
+            //if (Student != null)
+            //{
+            //    _context.Students.Remove(Student);
+            //    await _context.SaveChangesAsync();
+            //}
+
+            //return RedirectToPage("./Index");
         }
     }
 }
