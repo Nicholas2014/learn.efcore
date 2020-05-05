@@ -62,7 +62,6 @@ namespace ContosoUniversity
 
             try
             {
-                throw new DbUpdateException("人为泡一个异常试试");
                 _context.Students.Remove(student);
                 await _context.SaveChangesAsync();
 
